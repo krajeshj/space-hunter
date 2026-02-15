@@ -1153,6 +1153,11 @@
           btn.classList.add('active');
           state.activeFilter = btn.dataset.filter;
           EventListManager.rebuild();
+
+          // Auto-sync viewer tab with filter selection
+          const viewMap = { pass: 'radar', launch: 'panorama' };
+          const targetView = viewMap[btn.dataset.filter];
+          if (targetView) switchView(targetView);
         });
       });
 
@@ -1227,6 +1232,17 @@
     const panel = document.getElementById(`view-${viewName}`);
     if (tab) tab.classList.add('active');
     if (panel) panel.classList.add('active');
+
+    // Auto-sync event filter with viewer tab
+    const filterMap = { radar: 'pass', panorama: 'launch' };
+    const targetFilter = filterMap[viewName];
+    if (targetFilter && state.activeFilter !== targetFilter) {
+      state.activeFilter = targetFilter;
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.filter === targetFilter);
+      });
+      EventListManager.rebuild();
+    }
   }
   window.switchView = switchView;
 
