@@ -820,7 +820,9 @@
 
       RadarBlip.update(state.issAz, state.issEl);
       if (typeof StarMap !== 'undefined') {
-        const mapHeading = (this.hasOrientation && this.compassLocked) ? state.heading : 0;
+        // When compass is locked, rotator handles rotation physically → render at heading 0
+        // When compass is off/desktop, starmap must apply heading internally
+        const mapHeading = (this.hasOrientation && this.compassLocked) ? 0 : state.heading;
         StarMap.render(new Date(), OBSERVER.lat, OBSERVER.lon, mapHeading);
       }
 

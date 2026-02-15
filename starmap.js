@@ -141,13 +141,15 @@ const StarMap = (() => {
     let svgLayer = null;
     let opacity = 0.4;
 
-    // Build an SVG overlay that goes inside the radar ring
+    // Build an SVG overlay that goes inside the radar-rotator (or ring fallback)
     function init(radarRing) {
         svgLayer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svgLayer.setAttribute('class', 'star-map-layer');
         svgLayer.setAttribute('viewBox', '0 0 300 300');
         svgLayer.style.opacity = opacity;
-        radarRing.appendChild(svgLayer);
+        // Prefer radar-rotator so the starmap rotates with the compass
+        const rotator = radarRing.querySelector('.radar-rotator');
+        (rotator || radarRing).appendChild(svgLayer);
     }
 
     // Convert az/el to radar-ring x/y (center = 150,150, radius 150)
