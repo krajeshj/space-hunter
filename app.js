@@ -762,10 +762,13 @@
       window.addEventListener('deviceorientation', e => {
         if (e.alpha != null) {
           this.hasOrientation = true;
-          let heading = e.webkitCompassHeading ?? (360 - e.alpha);
-          state.heading = heading;
-          dom.userHeading.textContent = `${heading.toFixed(0)}°`;
-          this.update();
+          // Only update heading when compass is actively locked
+          if (this.compassLocked) {
+            let heading = e.webkitCompassHeading ?? (360 - e.alpha);
+            state.heading = heading;
+            dom.userHeading.textContent = `${heading.toFixed(0)}°`;
+            this.update();
+          }
         }
       });
     },
@@ -809,7 +812,9 @@
             badge.innerHTML = this.compassLocked ? '🧭 Live' : '🧭 Off';
             badge.classList.toggle('compass-off', !this.compassLocked);
             if (!this.compassLocked) {
-              // Clear rotation when toggling off
+              // Reset heading to 0 (north-up) and clear rotation
+              state.heading = 0;
+              dom.userHeading.textContent = '0°';
               const rotator = document.querySelector('.radar-rotator');
               if (rotator) rotator.style.transform = '';
             }
