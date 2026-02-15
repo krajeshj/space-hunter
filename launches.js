@@ -780,5 +780,32 @@ const LaunchTracker = (() => {
             const launch = launches[idx];
             if (launch) simulateLaunch(launch);
         },
+
+        // Get azimuth bearing from observer to the next launch site
+        getNextLaunchAzimuth() {
+            if (launches.length === 0) return null;
+            const now = Date.now();
+            const next = launches.find(l => l.net && l.net.getTime() > now) || launches[0];
+            if (!next || !next.site) return null;
+
+            const lat1 = observer.lat * RAD;
+            const lon1 = observer.lon * RAD;
+            const lat2 = next.padLat * RAD;
+            const lon2 = next.padLon * RAD;
+            const dLon = lon2 - lon1;
+            const y = Math.sin(dLon) * Math.cos(lat2);
+            const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+            let bearing = Math.atan2(y, x) * DEG;
+            if (bearing < 0) bearing += 360;
+
+            const dist = haversine(observer.lat, observer.lon, next.padLat, next.padLon);
+
+            return {
+                azimuth: bearing,
+                distance: dist,
+                launch: next,
+                siteName: next.locationName || next.site.label,
+            };
+        },
     };
 })();

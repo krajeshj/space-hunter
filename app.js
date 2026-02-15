@@ -99,6 +99,10 @@
     launchStatus: $('launch-status'),
     launchDistance: $('launch-distance'),
     launchVelocity: $('launch-velocity'),
+    // Launch direction
+    launchDirContainer: $('launch-direction'),
+    launchDirArrow: $('launch-dir-arrow'),
+    launchDirText: $('launch-dir-text'),
   };
 
   // ── UTILITIES ────────────────────────────
@@ -781,10 +785,36 @@
       const relAz = (state.issAz - state.heading + 360) % 360;
       const el = Math.max(-90, Math.min(90, state.issEl));
       dom.arrow3d.style.transform = `rotateY(${relAz}deg) rotateX(${-el}deg)`;
+
+      // Rotate radar ring elements when real compass is available
+      if (this.hasOrientation) {
+        const compassLabels = document.querySelector('.compass-labels');
+        const elevRings = document.querySelector('.elevation-rings');
+        const radarSweep = document.querySelector('.radar-sweep');
+        const rot = `rotate(${-state.heading}deg)`;
+        if (compassLabels) compassLabels.style.transform = rot;
+        if (elevRings) elevRings.style.transform = rot;
+        if (radarSweep) radarSweep.style.transform = rot;
+
+        // Show compass-active badge
+        let badge = document.getElementById('compass-badge');
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.id = 'compass-badge';
+          badge.className = 'compass-badge';
+          badge.innerHTML = '🧭 Live';
+          const ring = document.querySelector('.radar-ring');
+          if (ring) ring.appendChild(badge);
+        }
+      }
+
       RadarBlip.update(state.issAz, state.issEl);
       if (typeof StarMap !== 'undefined') {
         StarMap.render(new Date(), OBSERVER.lat, OBSERVER.lon, state.heading);
       }
+
+      // Update launch direction arrow if panorama is active
+      updateLaunchDirection();
     }
   };
 
@@ -806,8 +836,10 @@
       const size = ring.offsetWidth / 2;
       const r = size * (1 - el / 90);
 
-      const relAz = (az - state.heading + 360) % 360;
-      const theta = (relAz - 90) * RAD;
+      // When compass is active, ring rotates, so use absolute az
+      // When drag-mode (no compass), use relative az
+      const useAz = CompassArrow.hasOrientation ? az : (az - state.heading + 360) % 360;
+      const theta = (useAz - 90) * RAD;
 
       const cx = size + r * Math.cos(theta);
       const cy = size + r * Math.sin(theta);
@@ -831,9 +863,9 @@
       const R = 160;
       const ctr = 170;
       const pts = pass.points.map(p => {
-        const relAz = ((p.az - state.heading + 360) % 360);
+        const useAz = CompassArrow.hasOrientation ? p.az : ((p.az - state.heading + 360) % 360);
         const r = R * (1 - Math.max(0, p.el) / 90);
-        const theta = (relAz - 90) * RAD;
+        const theta = (useAz - 90) * RAD;
         return {
           x: ctr + r * Math.cos(theta),
           y: ctr + r * Math.sin(theta)
@@ -1249,6 +1281,7 @@
       if (dom.statsBarIss) dom.statsBarIss.style.display = 'none';
       if (dom.statsBarLaunch) dom.statsBarLaunch.style.display = '';
       updateLaunchStats();
+      updateLaunchDirection();
     } else {
       if (dom.statsBarIss) dom.statsBarIss.style.display = '';
       if (dom.statsBarLaunch) dom.statsBarLaunch.style.display = 'none';
@@ -1310,6 +1343,75 @@
       const dist = 2 * 6371 * Math.asin(Math.sqrt(a));
       dom.launchDistance.textContent = Math.round(dist).toLocaleString();
     }
+  }
+
+  // ── LAUNCH DIRECTION ARROW ──────────────────
+  function updateLaunchDirection() {
+    if (!dom.launchDirContainer) return;
+    // Only show when panorama is active
+    const panoPanel = document.getElementById('view-panorama');
+    if (!panoPanel || !panoPanel.classList.contains('active')) {
+      dom.launchDirContainer.style.display = 'none';
+      return;
+    }
+
+    if (typeof LaunchTracker === 'undefined') {
+      dom.launchDirContainer.style.display = 'none';
+      return;
+    }
+
+    const info = LaunchTracker.getNextLaunchAzimuth();
+    if (!info) {
+      dom.launchDirContainer.style.display = 'none';
+      return;
+    }
+
+    dom.launchDirContainer.style.display = '';
+    const targetAz = info.azimuth;
+    const heading = state.heading;
+
+    // Compute shortest angular difference
+    let diff = targetAz - heading;
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+
+    const absDiff = Math.abs(diff);
+    const hasCompass = CompassArrow.hasOrientation;
+
+    if (!hasCompass) {
+      // Desktop: show static bearing info
+      const cardinal = bearingToCardinal(targetAz);
+      dom.launchDirArrow.textContent = '🧭';
+      dom.launchDirText.textContent = `Launch site: Face ${cardinal} (${targetAz.toFixed(0)}°) • ${info.siteName}`;
+      dom.launchDirContainer.className = 'launch-direction glass-card';
+      return;
+    }
+
+    if (absDiff <= 15) {
+      // Aligned!
+      dom.launchDirArrow.textContent = '✅';
+      dom.launchDirText.textContent = `You're facing ${info.siteName}!`;
+      dom.launchDirContainer.className = 'launch-direction glass-card dir-aligned';
+    } else if (absDiff <= 45) {
+      // Almost there
+      const arrow = diff > 0 ? '↗️' : '↖️';
+      const dir = diff > 0 ? 'slightly right' : 'slightly left';
+      dom.launchDirArrow.textContent = arrow;
+      dom.launchDirText.textContent = `Turn ${dir} towards ${info.siteName} (${absDiff.toFixed(0)}° off)`;
+      dom.launchDirContainer.className = 'launch-direction glass-card dir-close';
+    } else {
+      // Need to turn more
+      const arrow = diff > 0 ? '➡️' : '⬅️';
+      const dir = diff > 0 ? 'right' : 'left';
+      dom.launchDirArrow.textContent = arrow;
+      dom.launchDirText.textContent = `Turn ${dir} ${absDiff.toFixed(0)}° towards ${info.siteName}`;
+      dom.launchDirContainer.className = 'launch-direction glass-card dir-far';
+    }
+  }
+
+  function bearingToCardinal(deg) {
+    const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    return dirs[Math.round(deg / 22.5) % 16];
   }
   window.switchView = switchView;
 
