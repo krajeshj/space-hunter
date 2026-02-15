@@ -820,7 +820,8 @@
 
       RadarBlip.update(state.issAz, state.issEl);
       if (typeof StarMap !== 'undefined') {
-        StarMap.render(new Date(), OBSERVER.lat, OBSERVER.lon, state.heading);
+        const mapHeading = (this.hasOrientation && this.compassLocked) ? state.heading : 0;
+        StarMap.render(new Date(), OBSERVER.lat, OBSERVER.lon, mapHeading);
       }
 
       // Update launch direction arrow if panorama is active
