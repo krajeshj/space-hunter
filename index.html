@@ -107,7 +107,8 @@
         </section>
 
         <!-- ── LIVE STATS BAR ──────────────────────── -->
-        <section id="stats-bar" class="stats-bar glass-card">
+        <!-- ISS Stats (shown with Radar view) -->
+        <section id="stats-bar-iss" class="stats-bar glass-card">
             <div class="stats-bar-inner">
                 <div class="sb-stat">
                     <span class="sb-label"><span class="pulse-dot live"></span> ISS</span>
@@ -150,6 +151,48 @@
                 <div class="sb-stat">
                     <span class="sb-label">Vis</span>
                     <span id="iss-vis" class="sb-value">—</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- SpaceX Stats (shown with Launch view) -->
+        <section id="stats-bar-launch" class="stats-bar glass-card" style="display:none">
+            <div class="stats-bar-inner">
+                <div class="sb-stat">
+                    <span class="sb-label"><span class="pulse-dot" style="background:#ff9800"></span> 🚀</span>
+                    <span id="launch-mission" class="sb-value mono">—</span>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="sb-stat">
+                    <span class="sb-label">T-minus</span>
+                    <span id="launch-countdown" class="sb-value mono">—</span>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="sb-stat">
+                    <span class="sb-label">Pad</span>
+                    <span id="launch-pad" class="sb-value mono">—</span>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="sb-stat">
+                    <span class="sb-label">Orbit</span>
+                    <span id="launch-orbit" class="sb-value mono">—</span>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="sb-stat">
+                    <span class="sb-label">Status</span>
+                    <span id="launch-status" class="sb-value">—</span>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="sb-stat">
+                    <span class="sb-label">Distance</span>
+                    <span id="launch-distance" class="sb-value mono">—</span>
+                    <span class="sb-unit">km</span>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="sb-stat">
+                    <span class="sb-label">Max Vel</span>
+                    <span id="launch-velocity" class="sb-value mono">~28,000</span>
+                    <span class="sb-unit">km/h</span>
                 </div>
             </div>
         </section>

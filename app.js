@@ -88,6 +88,17 @@
     arrow3d: $('arrow-3d'),
     arrowAz: $('arrow-az'),
     arrowEl: $('arrow-el'),
+    // Stats bars
+    statsBarIss: $('stats-bar-iss'),
+    statsBarLaunch: $('stats-bar-launch'),
+    // Launch stats
+    launchMission: $('launch-mission'),
+    launchCountdown: $('launch-countdown'),
+    launchPad: $('launch-pad'),
+    launchOrbit: $('launch-orbit'),
+    launchStatus: $('launch-status'),
+    launchDistance: $('launch-distance'),
+    launchVelocity: $('launch-velocity'),
   };
 
   // ── UTILITIES ────────────────────────────
@@ -1233,6 +1244,16 @@
     if (tab) tab.classList.add('active');
     if (panel) panel.classList.add('active');
 
+    // Toggle stats bars
+    if (viewName === 'panorama') {
+      if (dom.statsBarIss) dom.statsBarIss.style.display = 'none';
+      if (dom.statsBarLaunch) dom.statsBarLaunch.style.display = '';
+      updateLaunchStats();
+    } else {
+      if (dom.statsBarIss) dom.statsBarIss.style.display = '';
+      if (dom.statsBarLaunch) dom.statsBarLaunch.style.display = 'none';
+    }
+
     // Auto-sync event filter with viewer tab
     const filterMap = { radar: 'pass', panorama: 'launch' };
     const targetFilter = filterMap[viewName];
@@ -1242,6 +1263,52 @@
         b.classList.toggle('active', b.dataset.filter === targetFilter);
       });
       EventListManager.rebuild();
+    }
+  }
+
+  // ── LAUNCH STATS UPDATER ────────────────────
+  function updateLaunchStats() {
+    if (typeof LaunchTracker === 'undefined') return;
+    const launches = LaunchTracker.getLaunches();
+    if (!launches || launches.length === 0) {
+      if (dom.launchMission) dom.launchMission.textContent = 'No launches';
+      return;
+    }
+
+    // Pick the next upcoming launch
+    const now = Date.now();
+    const next = launches.find(l => l.net && l.net.getTime() > now) || launches[0];
+    if (!next) return;
+
+    if (dom.launchMission) dom.launchMission.textContent = next.missionName || '—';
+
+    if (dom.launchCountdown && next.net) {
+      const diff = next.net.getTime() - now;
+      if (diff > 0) {
+        const d = Math.floor(diff / 86400000);
+        const h = Math.floor((diff % 86400000) / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        dom.launchCountdown.textContent = d > 0 ? `T-${d}d ${h}h ${m}m` : h > 0 ? `T-${h}h ${m}m` : `T-${m}m`;
+      } else {
+        dom.launchCountdown.textContent = 'LAUNCHED';
+      }
+    }
+
+    if (dom.launchPad) dom.launchPad.textContent = next.locationName || next.padName || '—';
+    if (dom.launchOrbit) dom.launchOrbit.textContent = next.orbit || 'LEO';
+
+    if (dom.launchStatus) {
+      dom.launchStatus.textContent = next.status || '—';
+      dom.launchStatus.style.color = next.status === 'Go' ? '#00e676' : next.status === 'TBD' ? '#ffd600' : '#aaa';
+    }
+
+    // Distance from observer to launch pad
+    if (dom.launchDistance) {
+      const dLat = (next.padLat - OBSERVER.lat) * Math.PI / 180;
+      const dLon = (next.padLon - OBSERVER.lon) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(OBSERVER.lat * Math.PI / 180) * Math.cos(next.padLat * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+      const dist = 2 * 6371 * Math.asin(Math.sqrt(a));
+      dom.launchDistance.textContent = Math.round(dist).toLocaleString();
     }
   }
   window.switchView = switchView;
