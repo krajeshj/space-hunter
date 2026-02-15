@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISS Hunter — Track &amp; Spot the Space Station</title>
+    <meta name="description"
+        content="Real-time ISS tracking, pass predictions, and visibility assessment. Point your device at the sky and hunt the station.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- API Key Modal -->
+    <div id="api-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content glass-card">
+            <div class="modal-icon">🛰️</div>
+            <h2>Welcome to ISS Hunter</h2>
+            <p>Enter your <a href="https://www.visualcrossing.com/sign-up" target="_blank" rel="noopener">Visual
+                    Crossing</a> API key for weather data, or skip to use without cloud cover info.</p>
+            <input type="text" id="api-key-input" placeholder="Paste your API key here..." autocomplete="off"
+                spellcheck="false">
+            <div class="modal-actions">
+                <button id="btn-skip-key" class="btn btn-ghost">Skip for Now</button>
+                <button id="btn-save-key" class="btn btn-primary">Save &amp; Launch</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <header>
+        <div class="header-inner">
+            <div class="logo">
+                <span class="logo-icon">◉</span>
+                <h1>ISS Hunter</h1>
+            </div>
+            <div class="header-meta">
+                <span id="clock" class="mono"></span>
+                <span id="location-badge" class="location-badge">📍 Detecting…</span>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- ── HERO VIEWER (top of page) ─────────── -->
+        <section id="viewer" class="section hero-viewer">
+            <div class="viewer-tabs">
+                <button class="viewer-tab active" data-view="radar">🧭 ISS Radar</button>
+                <button class="viewer-tab" data-view="panorama">🌃 Southern Horizon</button>
+            </div>
+
+            <!-- Radar View -->
+            <div id="view-radar" class="viewer-panel active">
+                <div class="radar-container glass-card">
+                    <div class="radar-ring">
+                        <div class="compass-labels">
+                            <span class="cl cl-n">N</span>
+                            <span class="cl cl-e">E</span>
+                            <span class="cl cl-s">S</span>
+                            <span class="cl cl-w">W</span>
+                        </div>
+                        <div class="elevation-rings">
+                            <div class="elev-ring" data-el="30">30°</div>
+                            <div class="elev-ring" data-el="60">60°</div>
+                            <div class="elev-ring" data-el="90"></div>
+                        </div>
+                        <div class="radar-sweep"></div>
+                        <div id="iss-blip" class="iss-blip hidden">
+                            <div class="blip-dot"></div>
+                            <div class="blip-ring"></div>
+                        </div>
+                    </div>
+                    <div class="radar-info">
+                        <div class="ri"><span class="ri-label">Azimuth</span><span id="iss-az" class="mono">—</span>
+                        </div>
+                        <div class="ri"><span class="ri-label">Elevation</span><span id="iss-el" class="mono">—</span>
+                        </div>
+                        <div class="ri"><span class="ri-label">Heading</span><span id="user-heading"
+                                class="mono">—</span>
+                        </div>
+                    </div>
+                    <div class="radar-actions">
+                        <button id="btn-beep" class="btn btn-primary btn-sm">🔊 Start Radar Beep</button>
+                        <button id="btn-simulate" class="btn btn-ghost btn-sm">⚡ Simulate Pass</button>
+                    </div>
+                    <div class="starmap-controls">
+                        <label for="starmap-slider">✨ Star Map</label>
+                        <input type="range" id="starmap-slider" min="0" max="100" value="40" class="slider">
+                        <span id="starmap-val" class="mono slider-val">40%</span>
+                    </div>
+                    <div id="sky-hint" class="sky-hint"></div>
+                </div>
+            </div>
+
+            <!-- Panorama View -->
+            <div id="view-panorama" class="viewer-panel">
+                <div id="launch-pano" class="launch-pano glass-card">
+                    <div class="pano-loading">Loading southern horizon view…</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── LIVE STATS BAR ──────────────────────── -->
+        <section id="stats-bar" class="stats-bar glass-card">
+            <div class="stats-bar-inner">
+                <div class="sb-stat">
+                    <span class="sb-label"><span class="pulse-dot live"></span> ISS</span>
+                    <span id="iss-lat" class="sb-value mono">—</span>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="sb-stat">
+                    <span class="sb-label">Lon</span>
+                    <span id="iss-lon" class="sb-value mono">—</span>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="sb-stat">
+                    <span class="sb-label">Alt</span>
+                    <span id="iss-alt" class="sb-value mono">—</span>
+                    <span class="sb-unit">km</span>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="sb-stat">
+                    <span class="sb-label">Vel</span>
+                    <span id="iss-vel" class="sb-value mono">—</span>
+                    <span class="sb-unit">km/h</span>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="sb-stat">
+                    <span class="sb-label">Range</span>
+                    <span id="iss-range" class="sb-value mono">—</span>
+                    <span class="sb-unit">km</span>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="sb-stat">
+                    <span class="sb-label" id="cloud-icon">☁️</span>
+                    <span id="cloud-cover" class="sb-value mono">—</span>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="sb-stat" id="overall-vis-card">
+                    <span class="sb-label" id="vis-icon">🔭</span>
+                    <span id="overall-vis" class="sb-value">—</span>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="sb-stat">
+                    <span class="sb-label">Vis</span>
+                    <span id="iss-vis" class="sb-value">—</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── UNIFIED EVENT LIST ──────────────────── -->
+        <section id="events" class="section">
+            <div class="events-header">
+                <h2 class="section-title">🗓️ Upcoming Events</h2>
+                <div class="event-filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="pass">🛰️ Passes</button>
+                    <button class="filter-btn" data-filter="launch">🚀 Launches</button>
+                </div>
+                <div class="sort-controls">
+                    <button class="sort-btn active" data-sort="date">📅 Date</button>
+                    <button class="sort-btn" data-sort="elevation">📐 Elevation ↓</button>
+                </div>
+            </div>
+            <div id="event-list" class="event-list">
+                <div class="pass-loading glass-card">
+                    <div class="spinner"></div><span>Loading events…</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── COLLAPSIBLE SETTINGS ────────────────── -->
+        <details id="settings-drawer" class="settings-drawer">
+            <summary class="settings-toggle glass-card">⚙️ Location &amp; Settings</summary>
+            <div class="settings-content">
+                <!-- Location -->
+                <div class="setting-group glass-card">
+                    <h3 class="setting-label">📍 Your Location</h3>
+                    <div class="location-controls">
+                        <div class="loc-auto">
+                            <button id="btn-detect" class="btn btn-primary btn-sm">🛰️ Auto-Detect</button>
+                            <span id="loc-status" class="loc-status"></span>
+                        </div>
+                        <div class="loc-divider"><span>or enter manually</span></div>
+                        <div class="loc-fields">
+                            <div class="loc-field">
+                                <label for="input-zip">ZIP Code</label>
+                                <input type="text" id="input-zip" maxlength="10" placeholder="94087"
+                                    inputmode="numeric">
+                            </div>
+                            <button id="btn-set-zip" class="btn btn-ghost btn-sm">Look Up ZIP</button>
+                        </div>
+                        <div class="loc-divider loc-divider-sm"><span>or coordinates</span></div>
+                        <div class="loc-fields">
+                            <div class="loc-field">
+                                <label for="input-lat">Latitude</label>
+                                <input type="number" id="input-lat" step="0.0001" min="-90" max="90"
+                                    placeholder="37.3861">
+                            </div>
+                            <div class="loc-field">
+                                <label for="input-lon">Longitude</label>
+                                <input type="number" id="input-lon" step="0.0001" min="-180" max="180"
+                                    placeholder="-122.0839">
+                            </div>
+                            <button id="btn-set-loc" class="btn btn-ghost btn-sm">Set Location</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conditions -->
+                <div class="setting-group glass-card">
+                    <h3 class="setting-label">🌤️ Viewing Conditions</h3>
+                    <div class="conditions-row">
+                        <div class="cond-item">
+                            <span class="cond-label">Light Pollution</span>
+                            <span id="light-pollution" class="cond-value">Bortle 7</span>
+                            <span class="cond-sub">Suburban Sky</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3D Arrow -->
+                <div class="setting-group glass-card">
+                    <h3 class="setting-label">🏹 3D Pointer</h3>
+                    <p class="section-sub">Arrow points toward the ISS's current calculated position</p>
+                    <div class="arrow-container">
+                        <div class="arrow-scene">
+                            <div id="arrow-3d" class="arrow-3d">
+                                <div class="arrow-shaft"></div>
+                                <div class="arrow-head"></div>
+                                <div class="arrow-tail"></div>
+                            </div>
+                        </div>
+                        <div class="arrow-data">
+                            <span>Az: <b id="arrow-az" class="mono">—</b></span>
+                            <span>El: <b id="arrow-el" class="mono">—</b></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </main>
+
+    <footer>
+        <p>ISS Hunter · Data from <a href="https://wheretheiss.at" target="_blank">Where the ISS at?</a> &amp; <a
+                href="https://www.visualcrossing.com" target="_blank">Visual Crossing</a></p>
+    </footer>
+
+    <!-- satellite.js for SGP4 propagation -->
+    <script src="https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js"></script>
+    <script src="starmap.js"></script>
+    <script src="launches.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
