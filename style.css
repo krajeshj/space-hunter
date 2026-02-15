@@ -1438,6 +1438,19 @@ footer {
   white-space: nowrap;
   letter-spacing: 0.03em;
   animation: fadeIn 0.3s ease;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s;
+}
+
+.compass-badge:hover {
+  background: rgba(0, 229, 255, 0.2);
+}
+
+.compass-badge.compass-off {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border);
+  color: var(--text2);
 }
 
 /* ── LAUNCH DIRECTION ARROW ─────────── */

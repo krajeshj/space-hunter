@@ -723,6 +723,7 @@
   // ══════════════════════════════════════════
   const CompassArrow = {
     hasOrientation: false,
+    compassLocked: true,
     dragStartX: 0,
     dragBaseHeading: 0,
     isDragging: false,
@@ -786,8 +787,8 @@
       const el = Math.max(-90, Math.min(90, state.issEl));
       dom.arrow3d.style.transform = `rotateY(${relAz}deg) rotateX(${-el}deg)`;
 
-      // Rotate radar ring elements when real compass is available
-      if (this.hasOrientation) {
+      // Rotate radar ring elements when real compass is available AND active
+      if (this.hasOrientation && this.compassLocked) {
         const compassLabels = document.querySelector('.compass-labels');
         const elevRings = document.querySelector('.elevation-rings');
         const radarSweep = document.querySelector('.radar-sweep');
@@ -795,8 +796,10 @@
         if (compassLabels) compassLabels.style.transform = rot;
         if (elevRings) elevRings.style.transform = rot;
         if (radarSweep) radarSweep.style.transform = rot;
+      }
 
-        // Show compass-active badge
+      // Create or update compass badge
+      if (this.hasOrientation) {
         let badge = document.getElementById('compass-badge');
         if (!badge) {
           badge = document.createElement('div');
@@ -805,6 +808,22 @@
           badge.innerHTML = '🧭 Live';
           const ring = document.querySelector('.radar-ring');
           if (ring) ring.appendChild(badge);
+          badge.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.compassLocked = !this.compassLocked;
+            badge.innerHTML = this.compassLocked ? '🧭 Live' : '🧭 Off';
+            badge.classList.toggle('compass-off', !this.compassLocked);
+            if (!this.compassLocked) {
+              // Clear rotation when toggling off
+              const cl = document.querySelector('.compass-labels');
+              const er = document.querySelector('.elevation-rings');
+              const rs = document.querySelector('.radar-sweep');
+              if (cl) cl.style.transform = '';
+              if (er) er.style.transform = '';
+              if (rs) rs.style.transform = '';
+            }
+            this.update();
+          });
         }
       }
 
@@ -836,9 +855,9 @@
       const size = ring.offsetWidth / 2;
       const r = size * (1 - el / 90);
 
-      // When compass is active, ring rotates, so use absolute az
-      // When drag-mode (no compass), use relative az
-      const useAz = CompassArrow.hasOrientation ? az : (az - state.heading + 360) % 360;
+      // When compass is active AND locked, ring rotates, so use absolute az
+      // When drag-mode or compass off, use relative az
+      const useAz = (CompassArrow.hasOrientation && CompassArrow.compassLocked) ? az : (az - state.heading + 360) % 360;
       const theta = (useAz - 90) * RAD;
 
       const cx = size + r * Math.cos(theta);
@@ -863,7 +882,7 @@
       const R = 160;
       const ctr = 170;
       const pts = pass.points.map(p => {
-        const useAz = CompassArrow.hasOrientation ? p.az : ((p.az - state.heading + 360) % 360);
+        const useAz = (CompassArrow.hasOrientation && CompassArrow.compassLocked) ? p.az : ((p.az - state.heading + 360) % 360);
         const r = R * (1 - Math.max(0, p.el) / 90);
         const theta = (useAz - 90) * RAD;
         return {
