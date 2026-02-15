@@ -59,18 +59,20 @@
             <div id="view-radar" class="viewer-panel active">
                 <div class="radar-container glass-card">
                     <div class="radar-ring">
-                        <div class="compass-labels">
-                            <span class="cl cl-n">N</span>
-                            <span class="cl cl-e">E</span>
-                            <span class="cl cl-s">S</span>
-                            <span class="cl cl-w">W</span>
+                        <div class="radar-rotator">
+                            <div class="compass-labels">
+                                <span class="cl cl-n">N</span>
+                                <span class="cl cl-e">E</span>
+                                <span class="cl cl-s">S</span>
+                                <span class="cl cl-w">W</span>
+                            </div>
+                            <div class="elevation-rings">
+                                <div class="elev-ring" data-el="30">30°</div>
+                                <div class="elev-ring" data-el="60">60°</div>
+                                <div class="elev-ring" data-el="90"></div>
+                            </div>
+                            <div class="radar-sweep"></div>
                         </div>
-                        <div class="elevation-rings">
-                            <div class="elev-ring" data-el="30">30°</div>
-                            <div class="elev-ring" data-el="60">60°</div>
-                            <div class="elev-ring" data-el="90"></div>
-                        </div>
-                        <div class="radar-sweep"></div>
                         <div id="iss-blip" class="iss-blip hidden">
                             <div class="blip-dot"></div>
                             <div class="blip-ring"></div>

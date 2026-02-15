@@ -787,15 +787,10 @@
       const el = Math.max(-90, Math.min(90, state.issEl));
       dom.arrow3d.style.transform = `rotateY(${relAz}deg) rotateX(${-el}deg)`;
 
-      // Rotate radar ring elements when real compass is available AND active
+      // Rotate the radar-rotator wrapper when compass is available AND active
       if (this.hasOrientation && this.compassLocked) {
-        const compassLabels = document.querySelector('.compass-labels');
-        const elevRings = document.querySelector('.elevation-rings');
-        const radarSweep = document.querySelector('.radar-sweep');
-        const rot = `rotate(${-state.heading}deg)`;
-        if (compassLabels) compassLabels.style.transform = rot;
-        if (elevRings) elevRings.style.transform = rot;
-        if (radarSweep) radarSweep.style.transform = rot;
+        const rotator = document.querySelector('.radar-rotator');
+        if (rotator) rotator.style.transform = `rotate(${-state.heading}deg)`;
       }
 
       // Create or update compass badge
@@ -815,12 +810,8 @@
             badge.classList.toggle('compass-off', !this.compassLocked);
             if (!this.compassLocked) {
               // Clear rotation when toggling off
-              const cl = document.querySelector('.compass-labels');
-              const er = document.querySelector('.elevation-rings');
-              const rs = document.querySelector('.radar-sweep');
-              if (cl) cl.style.transform = '';
-              if (er) er.style.transform = '';
-              if (rs) rs.style.transform = '';
+              const rotator = document.querySelector('.radar-rotator');
+              if (rotator) rotator.style.transform = '';
             }
             this.update();
           });

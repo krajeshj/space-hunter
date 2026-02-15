@@ -1409,15 +1409,10 @@ footer {
 }
 
 /* ── COMPASS ROTATION (phone sensors) ──── */
-.compass-labels,
-.elevation-rings {
+.radar-rotator {
   position: absolute;
   inset: 0;
-  transition: transform 0.15s ease;
-  will-change: transform;
-}
-
-.radar-sweep {
+  border-radius: 50%;
   transition: transform 0.15s ease;
   will-change: transform;
 }
