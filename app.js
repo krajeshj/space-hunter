@@ -351,10 +351,8 @@
         dom.arrowEl.textContent = `${el.toFixed(1)}°`;
 
         CompassArrow.update();
-        RadarBlip.update(az, el);
 
         if (typeof StarMap !== 'undefined') {
-          StarMap.render(new Date(), OBSERVER.lat, OBSERVER.lon, state.heading);
           const hint = StarMap.getLandmarkHint(az, el);
           dom.skyHint.textContent = el > 0 ? `🌟 ISS visible — ${hint}` : hint;
         }
@@ -759,18 +757,21 @@
     },
 
     bindOrientation() {
-      window.addEventListener('deviceorientation', e => {
-        if (e.alpha != null) {
-          this.hasOrientation = true;
-          // Only update heading when compass is actively locked
-          if (this.compassLocked) {
-            let heading = e.webkitCompassHeading ?? (360 - e.alpha);
-            state.heading = heading;
-            dom.userHeading.textContent = `${heading.toFixed(0)}°`;
-            this.update();
-          }
+      const handler = e => {
+        const heading = e.webkitCompassHeading ?? (360 - e.alpha);
+        if (heading == null || isNaN(heading)) return;
+
+        this.hasOrientation = true;
+        if (this.compassLocked) {
+          state.heading = heading;
+          dom.userHeading.textContent = `${heading.toFixed(0)}°`;
+          this.update();
         }
-      });
+      };
+
+      if (window.DeviceOrientationEvent) {
+        window.addEventListener('deviceorientation', handler);
+      }
     },
 
     onDragStart(x) {
@@ -824,14 +825,17 @@
       }
 
       RadarBlip.update(state.issAz, state.issEl);
+
+      // Re-draw arc to follow rotation
+      if (RadarBlip.activePass) {
+        RadarBlip.drawPredictedArc(RadarBlip.activePass, RadarBlip.activeColor);
+      }
+
       if (typeof StarMap !== 'undefined') {
-        // When compass is locked, rotator handles rotation physically → render at heading 0
-        // When compass is off/desktop, starmap must apply heading internally
         const mapHeading = (this.hasOrientation && this.compassLocked) ? 0 : state.heading;
         StarMap.render(new Date(), OBSERVER.lat, OBSERVER.lon, mapHeading);
       }
 
-      // Update launch direction arrow if panorama is active
       updateLaunchDirection();
     }
   };
@@ -841,6 +845,8 @@
   // ══════════════════════════════════════════
   const RadarBlip = {
     arcLayer: null,
+    activePass: null,
+    activeColor: COLOR_SIM,
 
     update(az, el) {
       const blip = dom.issBlip;
@@ -850,28 +856,31 @@
       }
       blip.classList.remove('hidden');
 
-      const ring = document.querySelector('.radar-ring');
-      const size = ring.offsetWidth / 2;
-      const r = size * (1 - el / 90);
+      // Use fixed 340x340 coordinate system (center 170, radius 160)
+      const CTR = 170;
+      const R = 160;
+      const r = R * (1 - el / 90);
 
-      // When compass is active AND locked, ring rotates, so use absolute az
-      // When drag-mode or compass off, use relative az
       const useAz = (CompassArrow.hasOrientation && CompassArrow.compassLocked) ? az : (az - state.heading + 360) % 360;
       const theta = (useAz - 90) * RAD;
 
-      const cx = size + r * Math.cos(theta);
-      const cy = size + r * Math.sin(theta);
+      const x = CTR + r * Math.cos(theta);
+      const y = CTR + r * Math.sin(theta);
 
-      blip.style.left = `${cx}px`;
-      blip.style.top = `${cy}px`;
+      // Convert 340-system to percentage for responsiveness
+      blip.style.left = `${(x / 340) * 100}%`;
+      blip.style.top = `${(y / 340) * 100}%`;
     },
 
     drawPredictedArc(pass, color = COLOR_SIM) {
-      this.clearPredictedArc();
       if (!pass || !pass.points || pass.points.length < 2) return;
+      this.activePass = pass;
+      this.activeColor = color;
 
       const ring = document.querySelector('.radar-ring');
       if (!ring) return;
+
+      if (this.arcLayer) this.arcLayer.remove();
 
       this.arcLayer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       this.arcLayer.setAttribute('class', 'predicted-arc-layer');
@@ -930,6 +939,7 @@
     },
 
     clearPredictedArc() {
+      this.activePass = null;
       if (this.arcLayer) {
         this.arcLayer.remove();
         this.arcLayer = null;
@@ -1235,7 +1245,10 @@
 
     launch() {
       tickClock();
-      setInterval(tickClock, 1000);
+      setInterval(() => {
+        tickClock();
+        CompassArrow.update();
+      }, 1000);
 
       dom.lightPoll.textContent = `Bortle ${BORTLE.class}`;
 
